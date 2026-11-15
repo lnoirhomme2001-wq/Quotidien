@@ -3,833 +3,568 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suivi d'Habitudes & Micro-Tâches</title>
-    <!-- Tailwind CSS -->
+    <title>Mes Habitudes & Micro-Tâches</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Police Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        slate: {
-                            50: '#f8fafc',
-                            100: '#f1f5f9',
-                            200: '#e2e8f0',
-                            300: '#cbd5e1',
-                            400: '#94a3b8',
-                            500: '#64748b',
-                            600: '#475569',
-                            700: '#334155',
-                            800: '#1e293b',
-                            900: '#0f172a',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* Transitions fluides et micro-interactions */
-        .check-btn {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .check-btn:active {
-            transform: scale(0.92);
-        }
-        /* Masquer la barre de défilement horizontale tout en gardant le scroll sur mobile */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen antialiased selection:bg-emerald-100 selection:text-emerald-900">
-
-    <!-- Conteneur principal -->
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+    <div class="max-w-6xl mx-auto px-4 py-8">
         <!-- En-tête -->
-        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-200">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-                <div class="flex items-center gap-2.5">
-                    <div class="p-2 bg-emerald-600 text-white rounded-xl shadow-sm">
-                        <i data-lucide="check-circle-2" class="w-6 h-6"></i>
-                    </div>
-                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Mes Habitudes & Micro-Tâches</h1>
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">✅</span>
+                    <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Mes Habitudes & Micro-Tâches</h1>
                 </div>
-                <p id="current-date-display" class="text-sm text-slate-500 mt-1 capitalize">Chargement de la date...</p>
+                <p id="current-date" class="text-slate-500 text-sm mt-1 capitalize"></p>
             </div>
-            
-            <div class="flex flex-wrap items-center gap-2">
-                <button onclick="openModal()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl shadow-sm transition-colors cursor-pointer">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    <span>Nouvelle habitude</span>
+            <div class="flex items-center gap-3">
+                <span id="sync-status" class="text-xs px-3 py-1.5 rounded-full bg-slate-200 text-slate-700 font-medium flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-slate-400"></span> Non configuré
+                </span>
+                <button onclick="openSettings()" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 px-3.5 py-2 rounded-lg font-medium text-sm flex items-center gap-2 shadow-sm transition">
+                    ⚙️ Config Sync
+                </button>
+                <button onclick="openModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 shadow-sm transition">
+                    + Nouvelle habitude
                 </button>
             </div>
         </header>
 
-        <!-- Cartes de Statistiques Rapides (KPIs) -->
-        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 my-6">
-            <!-- Progrès du jour -->
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Aujourd'hui</span>
-                    <span id="today-fraction" class="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">0 / 0</span>
+        <!-- Indicateurs globaux -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center text-sm text-slate-500 mb-1">
+                    <span>AUJOURD'HUI</span>
+                    <span id="today-score-text">0 / 0</span>
                 </div>
-                <div class="mt-3 flex items-baseline gap-2">
-                    <span id="today-percent" class="text-3xl font-bold text-slate-900">0%</span>
-                    <span class="text-xs text-slate-500">complété</span>
-                </div>
-                <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
-                    <div id="today-progress-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                <div class="text-3xl font-bold text-slate-900" id="today-percent">0%</div>
+                <div class="w-full bg-slate-100 rounded-full h-2 mt-3 overflow-hidden">
+                    <div id="today-progress-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
                 </div>
             </div>
 
-            <!-- Constance sur 7 jours -->
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Constance (7 jours)</span>
-                    <i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i>
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center text-sm text-slate-500 mb-1">
+                    <span>CONSTANCE (7 JOURS)</span>
+                    <span class="text-emerald-600 font-medium">↗</span>
                 </div>
-                <div class="mt-3 flex items-baseline gap-2">
-                    <span id="weekly-consistency" class="text-3xl font-bold text-slate-900">0%</span>
-                    <span class="text-xs text-slate-500">de régularité</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-3">Inclut les objectifs complets et seuils minimaux</p>
+                <div class="text-3xl font-bold text-slate-900" id="weekly-constancy">0%</div>
+                <p class="text-xs text-slate-400 mt-2">Inclut les objectifs complets et seuils minimaux</p>
             </div>
 
-            <!-- Meilleure Série en cours -->
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Meilleure Série Active</span>
-                    <i data-lucide="flame" class="w-4 h-4 text-amber-500"></i>
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center text-sm text-slate-500 mb-1">
+                    <span>MEILLEURE SÉRIE ACTIVE</span>
+                    <span class="text-amber-500">🔥</span>
                 </div>
-                <div class="mt-3 flex items-baseline gap-2">
-                    <span id="best-streak" class="text-3xl font-bold text-slate-900">0</span>
-                    <span class="text-xs text-slate-500">jours consécutifs</span>
-                </div>
-                <p id="best-streak-name" class="text-xs text-slate-400 mt-3 truncate">Aucune série active</p>
+                <div class="text-3xl font-bold text-slate-900" id="best-streak">0j</div>
+                <p class="text-xs text-slate-400 mt-2" id="best-streak-name">Aucune habitude active</p>
             </div>
-        </section>
+        </div>
 
-        <!-- Légende des états -->
-        <div class="bg-white px-4 py-3 rounded-2xl border border-slate-200/80 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
-            <div class="flex items-center gap-2 font-medium text-slate-700">
-                <i data-lucide="info" class="w-4 h-4 text-slate-400"></i>
+        <!-- Légende -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4 text-xs md:text-sm text-slate-600">
+            <div class="flex items-center gap-2">
+                <span>ℹ️</span>
                 <span>Clique sur une case pour changer d'état :</span>
             </div>
             <div class="flex flex-wrap items-center gap-4">
-                <div class="flex items-center gap-1.5">
-                    <span class="w-4 h-4 rounded-md border border-slate-300 bg-slate-50 inline-block"></span>
-                    <span>À faire</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-4 h-4 rounded-md bg-emerald-500 text-white inline-flex items-center justify-center">
-                        <i data-lucide="check" class="w-3 h-3"></i>
-                    </span>
-                    <span class="font-medium text-emerald-700">Objectif complet</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-4 h-4 rounded-md bg-amber-400 text-white inline-flex items-center justify-center">
-                        <i data-lucide="minus" class="w-3 h-3"></i>
-                    </span>
-                    <span class="font-medium text-amber-700">Seuil minimal (maintient la série)</span>
-                </div>
+                <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded border border-slate-300 inline-block"></span> À faire</div>
+                <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-emerald-500 inline-block"></span> Objectif complet</div>
+                <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-amber-500 inline-block"></span> Seuil minimal (maintient la série)</div>
             </div>
         </div>
 
-        <!-- Grille Principale des Habitudes (7 derniers jours) -->
-        <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden mb-8">
-            <div class="overflow-x-auto no-scrollbar">
-                <table class="w-full text-left border-collapse min-w-[640px]">
+        <!-- Tableau principal -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            <th class="py-4 px-5 w-2/5">Habitude & Seuil Minimal</th>
-                            <!-- Les 7 colonnes de dates seront générées dynamiquement -->
-                            <th id="days-header-placeholder" colspan="7" class="p-0"></th>
-                            <th class="py-4 px-4 text-center">Série</th>
-                            <th class="py-4 px-4 text-right">Actions</th>
+                        <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50/50">
+                            <th class="py-3 px-4 w-1/3">Habitude & Seuil minimal</th>
+                            <th id="days-headers" class="py-3 px-2 text-center" colspan="7"></th>
+                            <th class="py-3 px-4 text-center">Série</th>
+                            <th class="py-3 px-4 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="habits-table-body" class="divide-y divide-slate-100 text-sm">
-                        <!-- Lignes générées par JavaScript -->
+                        <!-- Généré dynamiquement -->
                     </tbody>
                 </table>
             </div>
-            
-            <!-- Message si aucune habitude -->
-            <div id="empty-state" class="hidden py-12 px-4 text-center">
-                <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
-                    <i data-lucide="sparkles" class="w-6 h-6"></i>
-                </div>
-                <h3 class="text-base font-semibold text-slate-800">Aucune habitude configurée</h3>
-                <p class="text-sm text-slate-500 max-w-md mx-auto mt-1">Commence par ajouter 2 ou 3 micro-tâches essentielles pour structurer ton quotidien sans surcharge.</p>
-                <button onclick="openModal()" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-colors cursor-pointer">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    <span>Créer ma première habitude</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- Section Graphique d'Évolution (14 derniers jours) -->
-        <section class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm mb-8">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
-                <div>
-                    <h2 class="text-base font-bold text-slate-900">Historique de régularité (14 derniers jours)</h2>
-                    <p class="text-xs text-slate-500">Visualisation quotidienne des objectifs complets (vert) et seuils minimaux (ambre)</p>
-                </div>
-                <div class="flex items-center gap-3 text-xs">
-                    <span class="inline-flex items-center gap-1.5 text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Complet</span>
-                    <span class="inline-flex items-center gap-1.5 text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Seuil min.</span>
-                </div>
-            </div>
-            
-            <!-- Conteneur du graphique SVG -->
-            <div class="w-full h-48 relative" id="chart-container">
-                <!-- SVG généré dynamiquement -->
-            </div>
-        </section>
-
-        <!-- Pied de page : Export & Gestion des données -->
-        <footer class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 text-xs text-slate-500">
-            <div class="flex items-center gap-1.5">
-                <i data-lucide="hard-drive" class="w-4 h-4 text-slate-400"></i>
-                <span>Données enregistrées automatiquement en local sur ton navigateur.</span>
-            </div>
-            <div class="flex items-center gap-3">
-                <button onclick="exportToCSV()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 font-medium rounded-xl border border-slate-200 shadow-sm transition-colors cursor-pointer">
-                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                    <span>Exporter en CSV</span>
-                </button>
-                <button onclick="openResetModal()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-rose-50 text-rose-600 font-medium rounded-xl border border-slate-200 hover:border-rose-200 transition-colors cursor-pointer">
-                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                    <span>Réinitialiser</span>
-                </button>
-            </div>
-        </footer>
-    </div>
-
-    <!-- Modal Ajout / Édition d'Habitude -->
-    <div id="habit-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 transform transition-all">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 id="modal-title" class="text-lg font-bold text-slate-900">Nouvelle habitude</h3>
-                <button onclick="closeModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <form id="habit-form" onsubmit="saveHabit(event)" class="mt-4 space-y-4">
-                <input type="hidden" id="habit-id">
-                
-                <div>
-                    <label for="habit-name" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Objectif principal *</label>
-                    <input type="text" id="habit-name" required placeholder="Ex: Courir ou marcher 30 min" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
-                </div>
-
-                <div>
-                    <label for="habit-min" class="block text-xs font-semibold uppercase tracking-wider text-amber-600 mb-1.5">Seuil minimal (les jours sans) *</label>
-                    <input type="text" id="habit-min" required placeholder="Ex: 10 min d'étirements ou marche rapide" class="w-full px-3.5 py-2.5 bg-amber-50/40 border border-amber-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
-                    <p class="text-[11px] text-slate-400 mt-1">Une version ultra-facile de l'habitude pour ne pas casser ta série.</p>
-                </div>
-
-                <div>
-                    <label for="habit-category" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Catégorie</label>
-                    <select id="habit-category" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
-                        <option value="Corps & Énergie">🏃 Corps & Énergie</option>
-                        <option value="Esprit & Lecture">📚 Esprit & Lecture</option>
-                        <option value="Projets & Créativité">🎲 Projets & Créativité</option>
-                        <option value="Quotidien & Sérénité">🌿 Quotidien & Sérénité</option>
-                    </select>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer">Annuler</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition-colors cursor-pointer">Enregistrer</button>
-                </div>
-            </form>
+        </div>
+        
+        <div class="text-center text-xs text-slate-400 pb-8">
+            Données sauvegardées automatiquement dans votre navigateur et synchronisées avec votre Google Sheet.
         </div>
     </div>
 
-    <!-- Modal Confirmation Réinitialisation -->
-    <div id="reset-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
-            <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-3">
-                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+    <!-- Modal Paramètres Sync -->
+    <div id="settings-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h2 class="text-lg font-bold text-slate-900 mb-2">Synchronisation Google Sheets</h2>
+            <p class="text-xs text-slate-500 mb-4">Entrez l'URL de votre application web Apps Script et votre clé secrète pour activer la liaison cloud.</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">URL de l'application Web Apps Script (/exec)</label>
+                    <input type="text" id="sync-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Clé secrète (KEY)</label>
+                    <input type="password" id="sync-key" placeholder="Votre clé secrète" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
             </div>
-            <h3 class="text-lg font-bold text-slate-900">Réinitialiser les données ?</h3>
-            <p class="text-sm text-slate-500 mt-1">Cela effacera ton historique actuel et restaurera les 3 habitudes par défaut. Pense à exporter en CSV avant si nécessaire.</p>
-            <div class="flex items-center justify-end gap-2 mt-5">
-                <button onclick="closeResetModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Annuler</button>
-                <button onclick="confirmReset()" class="px-4 py-2 text-sm font-medium bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm cursor-pointer">Oui, réinitialiser</button>
+
+            <div class="flex justify-between items-center mt-6">
+                <button onclick="testAndSync()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg font-medium transition">Tester & Importer</button>
+                <div class="flex gap-2">
+                    <button onclick="closeSettings()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Annuler</button>
+                    <button onclick="saveSettings()" class="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800">Enregistrer</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 z-50">
-        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
-        <span id="toast-msg">Action effectuée</span>
+    <!-- Modal Nouvelle Habitude -->
+    <div id="habit-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h2 class="text-lg font-bold text-slate-900 mb-4" id="modal-title">Nouvelle habitude</h2>
+            <input type="hidden" id="edit-habit-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Nom de l'habitude</label>
+                    <input type="text" id="habit-name" placeholder="Ex: Étirements post-trajet" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Catégorie</label>
+                    <input type="text" id="habit-category" placeholder="Ex: Corps & Énergie" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Seuil minimal (description)</label>
+                    <input type="text" id="habit-threshold" placeholder="Ex: Min : 5 min d'étirements" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeModal()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Annuler</button>
+                <button onclick="saveHabit()" class="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800">Enregistrer</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Clé de sauvegarde LocalStorage
-        const STORAGE_KEY = 'daily_habits_tracker_v1';
-
-        // État global de l'application
-        let appData = {
-            habits: [],
-            // logs[habitId][YYYY-MM-DD] = 0 (non fait), 1 (seuil minimal), 2 (complet)
-            logs: {}
+        // État par défaut si aucune donnée
+        let state = {
+            habitudes: [
+                { id: "h1", nom: "Séance de sport ou 30 min de marche active", seuil: "Min : 10 min de marche ou étirements", categorie: "Corps & Énergie", actif: true },
+                { id: "h2", nom: "Lire 20 pages ou avancer sur un projet perso", seuil: "Min : Lire 2 pages ou noter une idée", categorie: "Esprit & Lecture", actif: true },
+                { id: "h3", nom: "Hydratation (1.5L) & 7h30 de sommeil", seuil: "Min : 1L d'eau ou 6h30 de sommeil", categorie: "Quotidien & Sérénité", actif: true }
+            ],
+            suivi: [] // {date: "YYYY-MM-DD", habitude_id: "h1", statut: "full" | "min"}
         };
 
-        // --- UTILITAIRES DE DATES ---
-        function formatDateISO(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
+        let syncConfig = {
+            url: localStorage.getItem("sync_url") || "",
+            key: localStorage.getItem("sync_key") || ""
+        };
 
-        function getPastDays(numDays) {
-            const days = [];
-            const today = new Date();
-            for (let i = numDays - 1; i >= 0; i--) {
-                const d = new Date(today);
-                d.setDate(today.getDate() - i);
-                days.push(d);
+        let lastDates = [];
+
+        function init() {
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            // Générer les 7 derniers jours (du J-6 à aujourd'hui)
+            lastDates = [];
+            for (let i = 6; i >= 0; i--) {
+                let d = new Date();
+                d.setDate(d.getDate() - i);
+                lastDates.push(d.toISOString().split('T')[0]);
             }
-            return days;
+
+            loadFromLocalStorage();
+            renderHeaders();
+            renderTable();
+            updateStats();
+            updateSyncUI();
+
+            if (syncConfig.url && syncConfig.key) {
+                fetchFromCloud();
+            }
         }
 
-        function getShortDayName(date) {
-            const names = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-            return names[date.getDay()];
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem("mon_quotidien_state");
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.habitudes) state.habitudes = parsed.habitudes;
+                    if (parsed.suivi) state.suivi = parsed.suivi;
+                } catch(e) {}
+            }
         }
 
-        // --- INITIALISATION & DONNÉES PAR DÉFAUT ---
-        function getDefaultData() {
-            const todayStr = formatDateISO(new Date());
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = formatDateISO(yesterday);
+        function saveToLocalStorage() {
+            localStorage.setItem("mon_quotidien_state", JSON.stringify(state));
+            triggerCloudSync();
+        }
 
-            const twoDaysAgo = new Date();
-            twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-            const twoDaysAgoStr = formatDateISO(twoDaysAgo);
+        function renderHeaders() {
+            const container = document.getElementById('days-headers');
+            let html = `<div class="grid grid-cols-7 text-center">`;
+            lastDates.forEach((dateStr, index) => {
+                let d = new Date(dateStr);
+                let dayName = d.toLocaleDateString('fr-FR', { weekday: 'short' }).toUpperCase();
+                let dayNum = d.getDate();
+                let isToday = (index === 6);
+                html += `<div class="${isToday ? 'text-emerald-600 font-bold' : ''}">
+                    <div class="text-[10px]">${dayName}</div>
+                    <div class="text-sm">${dayNum}</div>
+                </div>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
 
-            return {
-                habits: [
-                    {
-                        id: 'hab-1',
-                        name: 'Séance de sport ou 30 min de marche active',
-                        minThreshold: '10 min de marche ou étirements',
-                        category: 'Corps & Énergie'
-                    },
-                    {
-                        id: 'hab-2',
-                        name: 'Lire 20 pages ou avancer sur un projet perso',
-                        minThreshold: 'Lire 2 pages ou noter une idée',
-                        category: 'Esprit & Lecture'
-                    },
-                    {
-                        id: 'hab-3',
-                        name: 'Hydratation (1.5L) & 7h30 de sommeil',
-                        minThreshold: 'Boire 2 grands verres d’eau au réveil',
-                        category: 'Quotidien & Sérénité'
+        function renderTable() {
+            const tbody = document.getElementById('habits-table-body');
+            tbody.innerHTML = "";
+
+            state.habitudes.forEach(h => {
+                let tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 transition";
+                
+                // Colonne info habitude
+                let tdInfo = document.createElement('td');
+                tdInfo.className = "py-4 px-4";
+                tdInfo.innerHTML = `
+                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 mb-1">${h.categorie}</span>
+                    <div class="font-semibold text-slate-900">${h.nom}</div>
+                    <div class="text-xs text-amber-600 mt-0.5">🛡️ ${h.seuil}</div>
+                `;
+                tr.appendChild(tdInfo);
+
+                // Colonnes des 7 jours
+                let tdDays = document.createElement('td');
+                tdDays.setAttribute('colspan', '7');
+                tdDays.className = "py-4 px-2";
+                let gridDiv = document.createElement('div');
+                gridDiv.className = "grid grid-cols-7 gap-2 text-center";
+
+                lastDates.forEach((dateStr, idx) => {
+                    let record = state.suivi.find(s => s.date === dateStr && s.habitude_id === h.id);
+                    let status = record ? record.status : ""; // "", "full", "min"
+                    
+                    let bgClass = "border border-slate-200 bg-white hover:border-slate-300";
+                    let content = "";
+                    if (status === "full") {
+                        bgClass = "bg-emerald-500 text-white shadow-sm";
+                        content = "✓";
+                    } else if (status === "min") {
+                        bgClass = "bg-amber-500 text-white shadow-sm";
+                        content = "—";
                     }
-                ],
-                logs: {
-                    'hab-1': { [twoDaysAgoStr]: 2, [yesterdayStr]: 1 },
-                    'hab-2': { [twoDaysAgoStr]: 2, [yesterdayStr]: 2 },
-                    'hab-3': { [yesterdayStr]: 2 }
+
+                    if (idx === 6) {
+                        bgClass += " ring-2 ring-emerald-500/20";
+                    }
+
+                    let btn = document.createElement('button');
+                    btn.className = `w-10 h-10 mx-auto rounded-lg font-bold text-sm flex items-center justify-center transition-all ${bgClass}`;
+                    btn.innerText = content;
+                    btn.onclick = () => toggleStatus(h.id, dateStr);
+                    gridDiv.appendChild(btn);
+                });
+                tdDays.appendChild(gridDiv);
+                tr.appendChild(tdDays);
+
+                // Série active
+                let streak = calculateStreak(h.id);
+                let tdStreak = document.createElement('td');
+                tdStreak.className = "py-4 px-4 text-center font-bold text-slate-700";
+                tdStreak.innerHTML = `<span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-xs">🔥 ${streak}j</span>`;
+                tr.appendChild(tdStreak);
+
+                // Actions
+                let tdActions = document.createElement('td');
+                tdActions.className = "py-4 px-4 text-center";
+                tdActions.innerHTML = `
+                    <button onclick="editHabit('${h.id}')" class="text-slate-400 hover:text-slate-700 p-1">✏️</button>
+                    <button onclick="deleteHabit('${h.id}')" class="text-slate-400 hover:text-red-600 p-1">🗑️</button>
+                `;
+                tr.appendChild(tdActions);
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleStatus(habitId, dateStr) {
+            let idx = state.suivi.findIndex(s => s.date === dateStr && s.habitude_id === habitId);
+            if (idx === -1) {
+                state.suivi.push({ date: dateStr, habitude_id: habitId, status: "full" });
+            } else {
+                let current = state.suivi[idx].status;
+                if (current === "full") {
+                    state.suivi[idx].status = "min";
+                } else if (current === "min") {
+                    state.suivi.splice(idx, 1); // retour à vide
                 }
-            };
-        }
-
-        function loadData() {
-            try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    appData = JSON.parse(saved);
-                } else {
-                    appData = getDefaultData();
-                    saveData();
-                }
-            } catch (e) {
-                console.error("Erreur lecture LocalStorage:", e);
-                appData = getDefaultData();
             }
+            saveToLocalStorage();
+            renderTable();
+            updateStats();
         }
 
-        function saveData() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-            } catch (e) {
-                console.error("Erreur sauvegarde LocalStorage:", e);
-            }
-        }
-
-        // --- CALCUL DES SÉRIES (STREAKS) ---
         function calculateStreak(habitId) {
-            const habitLogs = appData.logs[habitId] || {};
             let streak = 0;
-            const today = new Date();
-            const todayStr = formatDateISO(today);
-
-            // Si aujourd'hui est complété (1 ou 2), on commence à compter depuis aujourd'hui
-            // Sinon, on vérifie si hier était complété pour ne pas casser la série en cours de journée
-            let checkDate = new Date(today);
-            if (!habitLogs[todayStr] || habitLogs[todayStr] === 0) {
-                checkDate.setDate(checkDate.getDate() - 1);
-            }
-
+            let d = new Date();
             while (true) {
-                const dateStr = formatDateISO(checkDate);
-                const status = habitLogs[dateStr] || 0;
-                if (status >= 1) { // 1 = seuil minimal, 2 = complet -> les deux maintiennent la série !
+                let dateStr = d.toISOString().split('T')[0];
+                let record = state.suivi.find(s => s.date === dateStr && s.habitude_id === habitId);
+                if (record && (record.status === "full" || record.status === "min")) {
                     streak++;
-                    checkDate.setDate(checkDate.getDate() - 1);
+                    d.setDate(d.getDate() - 1);
                 } else {
+                    // Si c'est aujourd'hui et pas encore fait, on regarde hier avant de casser la série
+                    if (dateStr === new Date().toISOString().split('T')[0]) {
+                        d.setDate(d.getDate() - 1);
+                        let yesterdayStr = d.toISOString().split('T')[0];
+                        let yRecord = state.suivi.find(s => s.date === yesterdayStr && s.habitude_id === habitId);
+                        if (yRecord && (yRecord.status === "full" || yRecord.status === "min")) {
+                            d.setDate(d.getDate() - 1);
+                            continue;
+                        }
+                    }
                     break;
                 }
             }
             return streak;
         }
 
-        // --- INTERACTION : CHANGEMENT D'ÉTAT ---
-        // Cycle : 0 (Vide) -> 2 (Complet) -> 1 (Seuil minimal) -> 0 (Vide)
-        function toggleHabitDay(habitId, dateStr) {
-            if (!appData.logs[habitId]) {
-                appData.logs[habitId] = {};
-            }
-            const current = appData.logs[habitId][dateStr] || 0;
-            let next = 0;
-            if (current === 0) next = 2;       // Premier clic : Objectif complet (Vert)
-            else if (current === 2) next = 1;  // Deuxième clic : Seuil minimal (Ambre)
-            else next = 0;                     // Troisième clic : Réinitialiser (Vide)
+        function updateStats() {
+            let todayStr = new Date().toISOString().split('T')[0];
+            let totalHabits = state.habitudes.length;
+            if (totalHabits === 0) return;
 
-            if (next === 0) {
-                delete appData.logs[habitId][dateStr];
-            } else {
-                appData.logs[habitId][dateStr] = next;
-            }
+            let todayDone = state.suivi.filter(s => s.date === todayStr && (s.status === "full" || s.status === "min")).length;
+            let todayPct = Math.round((todayDone / totalHabits) * 100);
 
-            saveData();
-            renderAll();
-        }
+            document.getElementById('today-score-text').innerText = `${todayDone} / ${totalHabits}`;
+            document.getElementById('today-percent').innerText = `${todayPct}%`;
+            document.getElementById('today-progress-bar').style.width = `${todayPct}%`;
 
-        // --- RENDU DE L'INTERFACE ---
-        function renderDateHeader() {
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('current-date-display').textContent = new Date().toLocaleDateString('fr-FR', options);
-        }
-
-        function renderTable() {
-            const last7Days = getPastDays(7);
-            const todayStr = formatDateISO(new Date());
-            const theadRow = document.querySelector('thead tr');
-            
-            // Reconstruire l'en-tête avec les 7 jours
-            let daysHeadersHTML = `<th class="py-4 px-5 w-2/5">Habitude & Seuil Minimal</th>`;
-            last7Days.forEach(date => {
-                const dateStr = formatDateISO(date);
-                const isToday = dateStr === todayStr;
-                daysHeadersHTML += `
-                    <th class="py-3 px-2 text-center ${isToday ? 'bg-emerald-50/70 text-emerald-700' : ''}">
-                        <div class="text-[11px] font-medium ${isToday ? 'text-emerald-600' : 'text-slate-400'}">${getShortDayName(date)}</div>
-                        <div class="text-sm font-bold mt-0.5 ${isToday ? 'text-emerald-700' : 'text-slate-700'}">${date.getDate()}</div>
-                    </th>
-                `;
+            // Constance 7 jours
+            let totalSlots = totalHabits * 7;
+            let totalValid = 0;
+            lastDates.forEach(dateStr => {
+                let count = state.suivi.filter(s => s.date === dateStr && (s.status === "full" || s.status === "min")).length;
+                totalValid += count;
             });
-            daysHeadersHTML += `
-                <th class="py-4 px-3 text-center">Série</th>
-                <th class="py-4 px-4 text-right">Actions</th>
-            `;
-            theadRow.innerHTML = daysHeadersHTML;
+            let constancyPct = Math.round((totalValid / totalSlots) * 100);
+            document.getElementById('weekly-constancy').innerText = `${constancyPct}%`;
 
-            // Corps du tableau
-            const tbody = document.getElementById('habits-table-body');
-            const emptyState = document.getElementById('empty-state');
-
-            if (appData.habits.length === 0) {
-                tbody.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
-            emptyState.classList.add('hidden');
-
-            let rowsHTML = '';
-            appData.habits.forEach(habit => {
-                const streak = calculateStreak(habit.id);
-                const habitLogs = appData.logs[habit.id] || {};
-
-                let cellsHTML = '';
-                last7Days.forEach(date => {
-                    const dateStr = formatDateISO(date);
-                    const status = habitLogs[dateStr] || 0;
-                    const isToday = dateStr === todayStr;
-
-                    let btnStyle = 'border-slate-200 bg-slate-50/50 hover:border-slate-300 text-transparent';
-                    let icon = 'check';
-                    let title = 'À faire (Cliquer pour valider)';
-
-                    if (status === 2) {
-                        btnStyle = 'border-emerald-500 bg-emerald-500 text-white shadow-xs hover:bg-emerald-600';
-                        icon = 'check';
-                        title = 'Objectif complet ! (Cliquer pour passer en seuil minimal)';
-                    } else if (status === 1) {
-                        btnStyle = 'border-amber-400 bg-amber-400 text-white shadow-xs hover:bg-amber-500';
-                        icon = 'minus';
-                        title = 'Seuil minimal atteint (Cliquer pour effacer)';
-                    }
-
-                    cellsHTML += `
-                        <td class="py-3 px-2 text-center ${isToday ? 'bg-emerald-50/30' : ''}">
-                            <button onclick="toggleHabitDay('${habit.id}', '${dateStr}')" 
-                                    title="${title}"
-                                    class="check-btn w-9 h-9 rounded-xl border inline-flex items-center justify-center cursor-pointer ${btnStyle}">
-                                <i data-lucide="${icon}" class="w-4 h-4 stroke-[2.5]"></i>
-                            </button>
-                        </td>
-                    `;
-                });
-
-                rowsHTML += `
-                    <tr class="hover:bg-slate-50/80 transition-colors group">
-                        <td class="py-4 px-5">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">${habit.category}</span>
-                            </div>
-                            <div class="font-semibold text-slate-800 mt-1">${escapeHTML(habit.name)}</div>
-                            <div class="text-xs text-amber-600/90 flex items-center gap-1 mt-0.5">
-                                <i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i>
-                                <span>Min : ${escapeHTML(habit.minThreshold)}</span>
-                            </div>
-                        </td>
-                        ${cellsHTML}
-                        <td class="py-4 px-3 text-center">
-                            <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${streak > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200/60' : 'bg-slate-100 text-slate-400'}">
-                                <i data-lucide="flame" class="w-3.5 h-3.5 ${streak > 0 ? 'text-amber-500 fill-amber-500' : ''}"></i>
-                                <span>${streak}j</span>
-                            </div>
-                        </td>
-                        <td class="py-4 px-4 text-right">
-                            <div class="inline-flex items-center gap-1 opacity-80 group-hover:opacity-100">
-                                <button onclick="openModal('${habit.id}')" title="Modifier" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
-                                    <i data-lucide="pencil" class="w-4 h-4"></i>
-                                </button>
-                                <button onclick="deleteHabit('${habit.id}')" title="Supprimer" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            tbody.innerHTML = rowsHTML;
-        }
-
-        function renderStats() {
-            const totalHabits = appData.habits.length;
-            const todayStr = formatDateISO(new Date());
-
-            // 1. Progrès du jour
-            if (totalHabits === 0) {
-                document.getElementById('today-fraction').textContent = '0 / 0';
-                document.getElementById('today-percent').textContent = '0%';
-                document.getElementById('today-progress-bar').style.width = '0%';
-                document.getElementById('weekly-consistency').textContent = '0%';
-                document.getElementById('best-streak').textContent = '0';
-                document.getElementById('best-streak-name').textContent = 'Ajoute une habitude pour commencer';
-                return;
-            }
-
-            let todayCompletedCount = 0;
-            appData.habits.forEach(h => {
-                const status = (appData.logs[h.id] && appData.logs[h.id][todayStr]) || 0;
-                if (status >= 1) todayCompletedCount++;
-            });
-
-            const todayPercent = Math.round((todayCompletedCount / totalHabits) * 100);
-            document.getElementById('today-fraction').textContent = `${todayCompletedCount} / ${totalHabits}`;
-            document.getElementById('today-percent').textContent = `${todayPercent}%`;
-            document.getElementById('today-progress-bar').style.width = `${todayPercent}%`;
-
-            // 2. Constance sur 7 jours
-            const last7Days = getPastDays(7);
-            const totalPossibleSlots = totalHabits * 7;
-            let completedSlots = 0;
-
-            appData.habits.forEach(h => {
-                last7Days.forEach(d => {
-                    const dStr = formatDateISO(d);
-                    const status = (appData.logs[h.id] && appData.logs[h.id][dStr]) || 0;
-                    if (status >= 1) completedSlots++;
-                });
-            });
-
-            const weeklyRate = Math.round((completedSlots / totalPossibleSlots) * 100);
-            document.getElementById('weekly-consistency').textContent = `${weeklyRate}%`;
-
-            // 3. Meilleure série active
-            let maxStreak = 0;
-            let bestHabitName = 'Aucune série active';
-            appData.habits.forEach(h => {
-                const s = calculateStreak(h.id);
-                if (s > maxStreak) {
-                    maxStreak = s;
-                    bestHabitName = h.name;
+            // Meilleure série
+            let bestStreak = 0;
+            let bestName = "Aucune";
+            state.habitudes.forEach(h => {
+                let s = calculateStreak(h.id);
+                if (s > bestStreak) {
+                    bestStreak = s;
+                    bestName = h.nom;
                 }
             });
-
-            document.getElementById('best-streak').textContent = maxStreak;
-            document.getElementById('best-streak-name').textContent = maxStreak > 0 ? bestHabitName : 'Valide une tâche aujourd’hui !';
+            document.getElementById('best-streak').innerText = `${bestStreak}j`;
+            document.getElementById('best-streak-name').innerText = bestStreak > 0 ? bestName : "Aucune habitude active";
         }
 
-        function renderChart() {
-            const container = document.getElementById('chart-container');
-            const days = getPastDays(14);
-            const totalHabits = appData.habits.length;
-
-            if (totalHabits === 0) {
-                container.innerHTML = `<div class="h-full flex items-center justify-center text-xs text-slate-400">Aucune donnée à afficher</div>`;
-                return;
-            }
-
-            // Construire un graphique en barres empilées propre en HTML/Tailwind
-            let barsHTML = `<div class="w-full h-full flex items-end justify-between gap-1.5 sm:gap-3 pt-6 pb-6">`;
-
-            days.forEach(date => {
-                const dateStr = formatDateISO(date);
-                let fullCount = 0;
-                let minCount = 0;
-
-                appData.habits.forEach(h => {
-                    const st = (appData.logs[h.id] && appData.logs[h.id][dateStr]) || 0;
-                    if (st === 2) fullCount++;
-                    else if (st === 1) minCount++;
-                });
-
-                const fullPct = (fullCount / totalHabits) * 100;
-                const minPct = (minCount / totalHabits) * 100;
-                const totalPct = Math.round(fullPct + minPct);
-                const isToday = dateStr === formatDateISO(new Date());
-
-                barsHTML += `
-                    <div class="flex-1 h-full flex flex-col items-center justify-end group relative">
-                        <!-- Tooltip au survol -->
-                        <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-7 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none whitespace-nowrap z-10">
-                            ${date.getDate()}/${date.getMonth()+1} : ${totalPct}%
-                        </div>
-                        
-                        <!-- Barre arrière-plan -->
-                        <div class="w-full max-w-[28px] h-full bg-slate-100 rounded-lg overflow-hidden flex flex-col justify-end p-0.5">
-                            <!-- Segment Seuil minimal (Ambre) -->
-                            <div style="height: ${minPct}%" class="w-full bg-amber-400 transition-all duration-500 ${fullPct === 0 && minPct > 0 ? 'rounded-md' : 'rounded-t-md'}"></div>
-                            <!-- Segment Complet (Émeraude) -->
-                            <div style="height: ${fullPct}%" class="w-full bg-emerald-500 transition-all duration-500 ${minPct === 0 && fullPct > 0 ? 'rounded-md' : 'rounded-b-md'}"></div>
-                        </div>
-
-                        <!-- Étiquette date -->
-                        <span class="text-[10px] mt-2 font-medium ${isToday ? 'text-emerald-600 font-bold' : 'text-slate-400'}">
-                            ${date.getDate()}/${String(date.getMonth() + 1).padStart(2, '0')}
-                        </span>
-                    </div>
-                `;
-            });
-
-            barsHTML += `</div>`;
-            container.innerHTML = barsHTML;
+        // Modal Habitude
+        function openModal() {
+            document.getElementById('modal-title').innerText = "Nouvelle habitude";
+            document.getElementById('edit-habit-id').value = "";
+            document.getElementById('habit-name').value = "";
+            document.getElementById('habit-category').value = "";
+            document.getElementById('habit-threshold').value = "";
+            document.getElementById('habit-modal').classList.remove('hidden');
+            document.getElementById('habit-modal').classList.add('flex');
         }
 
-        function renderAll() {
-            renderTable();
-            renderStats();
-            renderChart();
-            lucide.createIcons();
-        }
-
-        // --- GESTION DES MODALES (AJOUT / ÉDITION / SUPPRESSION) ---
-        function openModal(habitId = null) {
-            const modal = document.getElementById('habit-modal');
-            const title = document.getElementById('modal-title');
-            const idInput = document.getElementById('habit-id');
-            const nameInput = document.getElementById('habit-name');
-            const minInput = document.getElementById('habit-min');
-            const catInput = document.getElementById('habit-category');
-
-            if (habitId) {
-                const habit = appData.habits.find(h => h.id === habitId);
-                if (!habit) return;
-                title.textContent = 'Modifier l’habitude';
-                idInput.value = habit.id;
-                nameInput.value = habit.name;
-                minInput.value = habit.minThreshold;
-                catInput.value = habit.category;
-            } else {
-                title.textContent = 'Nouvelle habitude';
-                idInput.value = '';
-                nameInput.value = '';
-                minInput.value = '';
-                catInput.value = 'Corps & Énergie';
-            }
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            nameInput.focus();
+        function editHabit(id) {
+            let h = state.habitudes.find(x => x.id === id);
+            if (!h) return;
+            document.getElementById('modal-title').innerText = "Modifier l'habitude";
+            document.getElementById('edit-habit-id').value = h.id;
+            document.getElementById('habit-name').value = h.nom;
+            document.getElementById('habit-category').value = h.categorie;
+            document.getElementById('habit-threshold').value = h.seuil;
+            document.getElementById('habit-modal').classList.remove('hidden');
+            document.getElementById('habit-modal').classList.add('flex');
         }
 
         function closeModal() {
-            const modal = document.getElementById('habit-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            document.getElementById('habit-modal').classList.add('hidden');
+            document.getElementById('habit-modal').classList.remove('flex');
         }
 
-        function saveHabit(event) {
-            event.preventDefault();
-            const id = document.getElementById('habit-id').value;
-            const name = document.getElementById('habit-name').value.trim();
-            const minThreshold = document.getElementById('habit-min').value.trim();
-            const category = document.getElementById('habit-category').value;
+        function saveHabit() {
+            let id = document.getElementById('edit-habit-id').value;
+            let nom = document.getElementById('habit-name').value.trim();
+            let categorie = document.getElementById('habit-category').value.trim() || "Général";
+            let seuil = document.getElementById('habit-threshold').value.trim() || "Min : Réaliser l'action";
 
-            if (!name || !minThreshold) return;
+            if (!nom) return;
 
             if (id) {
-                // Édition
-                const index = appData.habits.findIndex(h => h.id === id);
-                if (index !== -1) {
-                    appData.habits[index] = { ...appData.habits[index], name, minThreshold, category };
-                    showToast('Habitude mise à jour');
+                let h = state.habitudes.find(x => x.id === id);
+                if (h) {
+                    h.nom = nom;
+                    h.categorie = categorie;
+                    h.seuil = seuil;
                 }
             } else {
-                // Création
-                const newHabit = {
-                    id: 'hab-' + Date.now(),
-                    name,
-                    minThreshold,
-                    category
-                };
-                appData.habits.push(newHabit);
-                showToast('Nouvelle habitude ajoutée');
+                let newId = 'h' + Date.now();
+                state.habitudes.push({ id: newId, nom, seuil, categorie, actif: true });
             }
 
-            saveData();
             closeModal();
-            renderAll();
+            saveToLocalStorage();
+            renderTable();
+            updateStats();
         }
 
-        function deleteHabit(habitId) {
-            appData.habits = appData.habits.filter(h => h.id !== habitId);
-            delete appData.logs[habitId];
-            saveData();
-            renderAll();
-            showToast('Habitude supprimée');
+        function deleteHabit(id) {
+            if (!confirm("Voulez-vous supprimer cette habitude ?")) return;
+            state.habitudes = state.habitudes.filter(h => h.id !== id);
+            state.suivi = state.suivi.filter(s => s.habitude_id !== id);
+            saveToLocalStorage();
+            renderTable();
+            updateStats();
         }
 
-        // --- RÉINITIALISATION ---
-        function openResetModal() {
-            const modal = document.getElementById('reset-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+        // Paramètres Sync
+        function openSettings() {
+            document.getElementById('sync-url').value = syncConfig.url;
+            document.getElementById('sync-key').value = syncConfig.key;
+            document.getElementById('settings-modal').classList.remove('hidden');
+            document.getElementById('settings-modal').classList.add('flex');
         }
 
-        function closeResetModal() {
-            const modal = document.getElementById('reset-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.add('hidden');
+            document.getElementById('settings-modal').classList.remove('flex');
         }
 
-        function confirmReset() {
-            appData = getDefaultData();
-            saveData();
-            closeResetModal();
-            renderAll();
-            showToast('Données réinitialisées par défaut');
+        function saveSettings() {
+            syncConfig.url = document.getElementById('sync-url').value.trim();
+            syncConfig.key = document.getElementById('sync-key').value.trim();
+            localStorage.setItem("sync_url", syncConfig.url);
+            localStorage.setItem("sync_key", syncConfig.key);
+            closeSettings();
+            updateSyncUI();
+            if (syncConfig.url && syncConfig.key) {
+                fetchFromCloud();
+            }
         }
 
-        // --- EXPORT CSV ---
-        function exportToCSV() {
-            if (appData.habits.length === 0) {
-                showToast('Aucune donnée à exporter');
+        function updateSyncUI() {
+            const badge = document.getElementById('sync-status');
+            if (!syncConfig.url || !syncConfig.key) {
+                badge.className = "text-xs px-3 py-1.5 rounded-full bg-slate-200 text-slate-700 font-medium flex items-center gap-1.5";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-400"></span> Non configuré`;
+            } else {
+                badge.className = "text-xs px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200 flex items-center gap-1.5";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Synchronisé`;
+            }
+        }
+
+        let syncTimeout = null;
+        function triggerCloudSync() {
+            if (!syncConfig.url || !syncConfig.key) return;
+            updateSyncUI();
+            if (syncTimeout) clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(() => {
+                const badge = document.getElementById('sync-status');
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Synchro...`;
+                
+                fetch(syncConfig.url, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        key: syncConfig.key,
+                        habitudes: state.habitudes,
+                        suivi: state.suivi
+                    })
+                }).then(() => {
+                    setTimeout(updateSyncUI, 1000);
+                }).catch(err => {
+                    badge.className = "text-xs px-3 py-1.5 rounded-full bg-red-50 text-red-700 font-medium border border-red-200 flex items-center gap-1.5";
+                    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> Erreur sync`;
+                });
+            }, 1000);
+        }
+
+        function fetchFromCloud() {
+            if (!syncConfig.url || !syncConfig.key) return;
+            const badge = document.getElementById('sync-status');
+            badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span> Chargement...`;
+
+            fetch(`${syncConfig.url}?key=${encodeURIComponent(syncConfig.key)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        alert("Erreur sync : " + data.error);
+                        updateSyncUI();
+                        return;
+                    }
+                    if (data.habitudes && data.habitudes.length > 0) {
+                        state.habitudes = data.habitudes;
+                    }
+                    if (data.suivi) {
+                        state.suivi = data.suivi;
+                    }
+                    saveToLocalStorage();
+                    renderTable();
+                    updateStats();
+                    updateSyncUI();
+                })
+                .catch(err => {
+                    console.log("Erreur de récupération réseau", err);
+                    updateSyncUI();
+                });
+        }
+
+        function testAndSync() {
+            let url = document.getElementById('sync-url').value.trim();
+            let key = document.getElementById('sync-key').value.trim();
+            if (!url || !key) {
+                alert("Veuillez remplir l'URL et la clé.");
                 return;
             }
-
-            // Récupérer toutes les dates enregistrées + les 14 derniers jours
-            const dateSet = new Set(getPastDays(14).map(d => formatDateISO(d)));
-            Object.values(appData.logs).forEach(habitLog => {
-                Object.keys(habitLog).forEach(d => dateSet.add(d));
-            });
-            const sortedDates = Array.from(dateSet).sort();
-
-            // En-tête CSV
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-            csvContent += ["Catégorie", "Habitude", "Seuil Minimal", ...sortedDates].map(v => `"${v}"`).join(";") + "\n";
-
-            // Lignes
-            appData.habits.forEach(habit => {
-                const row = [
-                    habit.category,
-                    habit.name,
-                    habit.minThreshold,
-                    ...sortedDates.map(date => {
-                        const val = (appData.logs[habit.id] && appData.logs[habit.id][date]) || 0;
-                        if (val === 2) return "Complet";
-                        if (val === 1) return "Seuil minimal";
-                        return "Non fait";
-                    })
-                ];
-                csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";") + "\n";
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `suivi_habitudes_${formatDateISO(new Date())}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showToast('Export CSV téléchargé');
+            fetch(`${url}?key=${encodeURIComponent(key)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        alert("Erreur : " + data.error);
+                    } else {
+                        alert("Connexion réussie ! Vos données ont été chargées.");
+                        syncConfig.url = url;
+                        syncConfig.key = key;
+                        localStorage.setItem("sync_url", url);
+                        localStorage.setItem("sync_key", key);
+                        if (data.habitudes) state.habitudes = data.habitudes;
+                        if (data.suivi) state.suivi = data.suivi;
+                        saveToLocalStorage();
+                        renderTable();
+                        updateStats();
+                        closeSettings();
+                        updateSyncUI();
+                    }
+                })
+                .catch(err => {
+                    alert("Erreur de connexion (Vérifiez l'URL de déploiement et l'accès public).");
+                });
         }
 
-        // --- UTILITAIRES UI ---
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').textContent = message;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 2800);
-        }
-
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;'
-                }[tag] || tag)
-            );
-        }
-
-        // Démarrage de l'application
-        window.addEventListener('DOMContentLoaded', () => {
-            renderDateHeader();
-            loadData();
-            renderAll();
-        });
+        window.onload = init;
     </script>
 </body>
 </html>
