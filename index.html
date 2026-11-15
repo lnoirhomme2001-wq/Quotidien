@@ -95,7 +95,7 @@
         </div>
         
         <div class="text-center text-xs text-slate-400 pb-8">
-            Données sauvegardées automatiquement dans votre navigateur et synchronisées avec votre Google Sheet.
+            Toutes les lignes sont enregistrées dans l'onglet unique <strong>donnees</strong> de ton Google Sheet.
         </div>
     </div>
 
@@ -103,7 +103,7 @@
     <div id="settings-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
             <h2 class="text-lg font-bold text-slate-900 mb-2">Synchronisation Google Sheets</h2>
-            <p class="text-xs text-slate-500 mb-4">Entrez l'URL de votre application web Apps Script et votre clé secrète pour activer la liaison cloud.</p>
+            <p class="text-xs text-slate-500 mb-4">Entrez l'URL de votre application web Apps Script et votre clé secrète.</p>
             
             <div class="space-y-4">
                 <div>
@@ -153,14 +153,13 @@
     </div>
 
     <script>
-        // État par défaut si aucune donnée
         let state = {
             habitudes: [
-                { id: "h1", nom: "Séance de sport ou 30 min de marche active", seuil: "Min : 10 min de marche ou étirements", categorie: "Corps & Énergie", actif: true },
-                { id: "h2", nom: "Lire 20 pages ou avancer sur un projet perso", seuil: "Min : Lire 2 pages ou noter une idée", categorie: "Esprit & Lecture", actif: true },
-                { id: "h3", nom: "Hydratation (1.5L) & 7h30 de sommeil", seuil: "Min : 1L d'eau ou 6h30 de sommeil", categorie: "Quotidien & Sérénité", actif: true }
+                { id: "h1", nom: "Séance de sport ou 30 min de marche active", seuil: "Min : 10 min de marche ou étirements", categorie: "Corps & Énergie" },
+                { id: "h2", nom: "Lire 20 pages ou avancer sur un projet perso", seuil: "Min : Lire 2 pages ou noter une idée", categorie: "Esprit & Lecture" },
+                { id: "h3", nom: "Hydratation (1.5L) & 7h30 de sommeil", seuil: "Min : 1L d'eau ou 6h30 de sommeil", categorie: "Quotidien & Sérénité" }
             ],
-            suivi: [] // {date: "YYYY-MM-DD", habitude_id: "h1", statut: "full" | "min"}
+            suivi: [] // {date: "YYYY-MM-DD", habitude_id: "h1", status: "full" | "min"}
         };
 
         let syncConfig = {
@@ -173,7 +172,6 @@
         function init() {
             document.getElementById('current-date').innerText = new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             
-            // Générer les 7 derniers jours (du J-6 à aujourd'hui)
             lastDates = [];
             for (let i = 6; i >= 0; i--) {
                 let d = new Date();
@@ -192,8 +190,72 @@
             }
         }
 
+        // Convertit l'état interne en tableau plat pour la feuille unique Google Sheets
+        function buildFlatRows() {
+            let rows = [];
+            state.habitudes.forEach(h => {
+                let logs = state.suivi.filter(s => s.habitude_id === h.id);
+                if (logs.length === 0) {
+                    // Ligne modèle pour conserver l'habitude même sans aucune date cochée
+                    rows.push({
+                        date: "",
+                        habitude_id: h.id,
+                        habitude_nom: h.nom,
+                        categorie: h.categorie,
+                        seuil: h.seuil,
+                        statut: ""
+                    });
+                } else {
+                    logs.forEach(l => {
+                        rows.push({
+                            date: l.date,
+                            habitude_id: h.id,
+                            habitude_nom: h.nom,
+                            categorie: h.categorie,
+                            seuil: h.seuil,
+                            statut: l.status
+                        });
+                    });
+                }
+            });
+            // Tri chronologique par date
+            rows.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+            return rows;
+        }
+
+        // Reconstruit l'état interne à partir des lignes plates de la feuille unique
+        function parseFlatRows(rows) {
+            if (!rows || rows.length === 0) return;
+            let habMap = new Map();
+            let newSuivi = [];
+
+            rows.forEach(r => {
+                if (!r.habitude_id) return;
+                if (!habMap.has(r.habitude_id)) {
+                    habMap.set(r.habitude_id, {
+                        id: r.habitude_id,
+                        nom: r.habitude_nom || "Habitude",
+                        categorie: r.categorie || "Général",
+                        seuil: r.seuil || ""
+                    });
+                }
+                if (r.date && r.statut) {
+                    newSuivi.push({
+                        date: r.date,
+                        habitude_id: r.habitude_id,
+                        status: r.statut
+                    });
+                }
+            });
+
+            if (habMap.size > 0) {
+                state.habitudes = Array.from(habMap.values());
+                state.suivi = newSuivi;
+            }
+        }
+
         function loadFromLocalStorage() {
-            const saved = localStorage.getItem("mon_quotidien_state");
+            const saved = localStorage.getItem("mon_quotidien_state_v2");
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -203,9 +265,9 @@
             }
         }
 
-        function saveToLocalStorage() {
-            localStorage.setItem("mon_quotidien_state", JSON.stringify(state));
-            triggerCloudSync();
+        function saveToLocalStorage(skipCloud = false) {
+            localStorage.setItem("mon_quotidien_state_v2", JSON.stringify(state));
+            if (!skipCloud) triggerCloudSync();
         }
 
         function renderHeaders() {
@@ -233,7 +295,6 @@
                 let tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50/50 transition";
                 
-                // Colonne info habitude
                 let tdInfo = document.createElement('td');
                 tdInfo.className = "py-4 px-4";
                 tdInfo.innerHTML = `
@@ -243,7 +304,6 @@
                 `;
                 tr.appendChild(tdInfo);
 
-                // Colonnes des 7 jours
                 let tdDays = document.createElement('td');
                 tdDays.setAttribute('colspan', '7');
                 tdDays.className = "py-4 px-2";
@@ -252,7 +312,7 @@
 
                 lastDates.forEach((dateStr, idx) => {
                     let record = state.suivi.find(s => s.date === dateStr && s.habitude_id === h.id);
-                    let status = record ? record.status : ""; // "", "full", "min"
+                    let status = record ? record.status : "";
                     
                     let bgClass = "border border-slate-200 bg-white hover:border-slate-300";
                     let content = "";
@@ -277,14 +337,12 @@
                 tdDays.appendChild(gridDiv);
                 tr.appendChild(tdDays);
 
-                // Série active
                 let streak = calculateStreak(h.id);
                 let tdStreak = document.createElement('td');
                 tdStreak.className = "py-4 px-4 text-center font-bold text-slate-700";
                 tdStreak.innerHTML = `<span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-xs">🔥 ${streak}j</span>`;
                 tr.appendChild(tdStreak);
 
-                // Actions
                 let tdActions = document.createElement('td');
                 tdActions.className = "py-4 px-4 text-center";
                 tdActions.innerHTML = `
@@ -306,7 +364,7 @@
                 if (current === "full") {
                     state.suivi[idx].status = "min";
                 } else if (current === "min") {
-                    state.suivi.splice(idx, 1); // retour à vide
+                    state.suivi.splice(idx, 1);
                 }
             }
             saveToLocalStorage();
@@ -324,7 +382,6 @@
                     streak++;
                     d.setDate(d.getDate() - 1);
                 } else {
-                    // Si c'est aujourd'hui et pas encore fait, on regarde hier avant de casser la série
                     if (dateStr === new Date().toISOString().split('T')[0]) {
                         d.setDate(d.getDate() - 1);
                         let yesterdayStr = d.toISOString().split('T')[0];
@@ -352,7 +409,6 @@
             document.getElementById('today-percent').innerText = `${todayPct}%`;
             document.getElementById('today-progress-bar').style.width = `${todayPct}%`;
 
-            // Constance 7 jours
             let totalSlots = totalHabits * 7;
             let totalValid = 0;
             lastDates.forEach(dateStr => {
@@ -362,7 +418,6 @@
             let constancyPct = Math.round((totalValid / totalSlots) * 100);
             document.getElementById('weekly-constancy').innerText = `${constancyPct}%`;
 
-            // Meilleure série
             let bestStreak = 0;
             let bestName = "Aucune";
             state.habitudes.forEach(h => {
@@ -376,7 +431,6 @@
             document.getElementById('best-streak-name').innerText = bestStreak > 0 ? bestName : "Aucune habitude active";
         }
 
-        // Modal Habitude
         function openModal() {
             document.getElementById('modal-title').innerText = "Nouvelle habitude";
             document.getElementById('edit-habit-id').value = "";
@@ -421,7 +475,7 @@
                 }
             } else {
                 let newId = 'h' + Date.now();
-                state.habitudes.push({ id: newId, nom, seuil, categorie, actif: true });
+                state.habitudes.push({ id: newId, nom, seuil, categorie });
             }
 
             closeModal();
@@ -439,7 +493,6 @@
             updateStats();
         }
 
-        // Paramètres Sync
         function openSettings() {
             document.getElementById('sync-url').value = syncConfig.url;
             document.getElementById('sync-key').value = syncConfig.key;
@@ -490,8 +543,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         key: syncConfig.key,
-                        habitudes: state.habitudes,
-                        suivi: state.suivi
+                        rows: buildFlatRows()
                     })
                 }).then(() => {
                     setTimeout(updateSyncUI, 1000);
@@ -515,15 +567,12 @@
                         updateSyncUI();
                         return;
                     }
-                    if (data.habitudes && data.habitudes.length > 0) {
-                        state.habitudes = data.habitudes;
+                    if (data.rows && data.rows.length > 0) {
+                        parseFlatRows(data.rows);
+                        saveToLocalStorage(true);
+                        renderTable();
+                        updateStats();
                     }
-                    if (data.suivi) {
-                        state.suivi = data.suivi;
-                    }
-                    saveToLocalStorage();
-                    renderTable();
-                    updateStats();
                     updateSyncUI();
                 })
                 .catch(err => {
@@ -545,16 +594,20 @@
                     if (data.error) {
                         alert("Erreur : " + data.error);
                     } else {
-                        alert("Connexion réussie ! Vos données ont été chargées.");
+                        alert("Connexion réussie !");
                         syncConfig.url = url;
                         syncConfig.key = key;
                         localStorage.setItem("sync_url", url);
                         localStorage.setItem("sync_key", key);
-                        if (data.habitudes) state.habitudes = data.habitudes;
-                        if (data.suivi) state.suivi = data.suivi;
-                        saveToLocalStorage();
-                        renderTable();
-                        updateStats();
+                        if (data.rows && data.rows.length > 0) {
+                            parseFlatRows(data.rows);
+                            saveToLocalStorage(true);
+                            renderTable();
+                            updateStats();
+                        } else {
+                            // Si la feuille est vide, on y pousse les habitudes actuelles
+                            triggerCloudSync();
+                        }
                         closeSettings();
                         updateSyncUI();
                     }
