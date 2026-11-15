@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi d'Habitudes & Micro-Tâches</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Police Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        slate: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Transitions fluides et micro-interactions */
+        .check-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .check-btn:active {
+            transform: scale(0.92);
+        }
+        /* Masquer la barre de défilement horizontale tout en gardant le scroll sur mobile */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased selection:bg-emerald-100 selection:text-emerald-900">
+
+    <!-- Conteneur principal -->
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- En-tête -->
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-200">
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-emerald-600 text-white rounded-xl shadow-sm">
+                        <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Mes Habitudes & Micro-Tâches</h1>
+                </div>
+                <p id="current-date-display" class="text-sm text-slate-500 mt-1 capitalize">Chargement de la date...</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="openModal()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl shadow-sm transition-colors cursor-pointer">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Nouvelle habitude</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Cartes de Statistiques Rapides (KPIs) -->
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 my-6">
+            <!-- Progrès du jour -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Aujourd'hui</span>
+                    <span id="today-fraction" class="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">0 / 0</span>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="today-percent" class="text-3xl font-bold text-slate-900">0%</span>
+                    <span class="text-xs text-slate-500">complété</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
+                    <div id="today-progress-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Constance sur 7 jours -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Constance (7 jours)</span>
+                    <i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="weekly-consistency" class="text-3xl font-bold text-slate-900">0%</span>
+                    <span class="text-xs text-slate-500">de régularité</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-3">Inclut les objectifs complets et seuils minimaux</p>
+            </div>
+
+            <!-- Meilleure Série en cours -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Meilleure Série Active</span>
+                    <i data-lucide="flame" class="w-4 h-4 text-amber-500"></i>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="best-streak" class="text-3xl font-bold text-slate-900">0</span>
+                    <span class="text-xs text-slate-500">jours consécutifs</span>
+                </div>
+                <p id="best-streak-name" class="text-xs text-slate-400 mt-3 truncate">Aucune série active</p>
+            </div>
+        </section>
+
+        <!-- Légende des états -->
+        <div class="bg-white px-4 py-3 rounded-2xl border border-slate-200/80 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
+            <div class="flex items-center gap-2 font-medium text-slate-700">
+                <i data-lucide="info" class="w-4 h-4 text-slate-400"></i>
+                <span>Clique sur une case pour changer d'état :</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-4 h-4 rounded-md border border-slate-300 bg-slate-50 inline-block"></span>
+                    <span>À faire</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-4 h-4 rounded-md bg-emerald-500 text-white inline-flex items-center justify-center">
+                        <i data-lucide="check" class="w-3 h-3"></i>
+                    </span>
+                    <span class="font-medium text-emerald-700">Objectif complet</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-4 h-4 rounded-md bg-amber-400 text-white inline-flex items-center justify-center">
+                        <i data-lucide="minus" class="w-3 h-3"></i>
+                    </span>
+                    <span class="font-medium text-amber-700">Seuil minimal (maintient la série)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grille Principale des Habitudes (7 derniers jours) -->
+        <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden mb-8">
+            <div class="overflow-x-auto no-scrollbar">
+                <table class="w-full text-left border-collapse min-w-[640px]">
+                    <thead>
+                        <tr class="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            <th class="py-4 px-5 w-2/5">Habitude & Seuil Minimal</th>
+                            <!-- Les 7 colonnes de dates seront générées dynamiquement -->
+                            <th id="days-header-placeholder" colspan="7" class="p-0"></th>
+                            <th class="py-4 px-4 text-center">Série</th>
+                            <th class="py-4 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="habits-table-body" class="divide-y divide-slate-100 text-sm">
+                        <!-- Lignes générées par JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Message si aucune habitude -->
+            <div id="empty-state" class="hidden py-12 px-4 text-center">
+                <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-base font-semibold text-slate-800">Aucune habitude configurée</h3>
+                <p class="text-sm text-slate-500 max-w-md mx-auto mt-1">Commence par ajouter 2 ou 3 micro-tâches essentielles pour structurer ton quotidien sans surcharge.</p>
+                <button onclick="openModal()" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-colors cursor-pointer">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Créer ma première habitude</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Section Graphique d'Évolution (14 derniers jours) -->
+        <section class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Historique de régularité (14 derniers jours)</h2>
+                    <p class="text-xs text-slate-500">Visualisation quotidienne des objectifs complets (vert) et seuils minimaux (ambre)</p>
+                </div>
+                <div class="flex items-center gap-3 text-xs">
+                    <span class="inline-flex items-center gap-1.5 text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Complet</span>
+                    <span class="inline-flex items-center gap-1.5 text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Seuil min.</span>
+                </div>
+            </div>
+            
+            <!-- Conteneur du graphique SVG -->
+            <div class="w-full h-48 relative" id="chart-container">
+                <!-- SVG généré dynamiquement -->
+            </div>
+        </section>
+
+        <!-- Pied de page : Export & Gestion des données -->
+        <footer class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 text-xs text-slate-500">
+            <div class="flex items-center gap-1.5">
+                <i data-lucide="hard-drive" class="w-4 h-4 text-slate-400"></i>
+                <span>Données enregistrées automatiquement en local sur ton navigateur.</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="exportToCSV()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 font-medium rounded-xl border border-slate-200 shadow-sm transition-colors cursor-pointer">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>Exporter en CSV</span>
+                </button>
+                <button onclick="openResetModal()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-rose-50 text-rose-600 font-medium rounded-xl border border-slate-200 hover:border-rose-200 transition-colors cursor-pointer">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Réinitialiser</span>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal Ajout / Édition d'Habitude -->
+    <div id="habit-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 transform transition-all">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 id="modal-title" class="text-lg font-bold text-slate-900">Nouvelle habitude</h3>
+                <button onclick="closeModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="habit-form" onsubmit="saveHabit(event)" class="mt-4 space-y-4">
+                <input type="hidden" id="habit-id">
+                
+                <div>
+                    <label for="habit-name" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Objectif principal *</label>
+                    <input type="text" id="habit-name" required placeholder="Ex: Courir ou marcher 30 min" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label for="habit-min" class="block text-xs font-semibold uppercase tracking-wider text-amber-600 mb-1.5">Seuil minimal (les jours sans) *</label>
+                    <input type="text" id="habit-min" required placeholder="Ex: 10 min d'étirements ou marche rapide" class="w-full px-3.5 py-2.5 bg-amber-50/40 border border-amber-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                    <p class="text-[11px] text-slate-400 mt-1">Une version ultra-facile de l'habitude pour ne pas casser ta série.</p>
+                </div>
+
+                <div>
+                    <label for="habit-category" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Catégorie</label>
+                    <select id="habit-category" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                        <option value="Corps & Énergie">🏃 Corps & Énergie</option>
+                        <option value="Esprit & Lecture">📚 Esprit & Lecture</option>
+                        <option value="Projets & Créativité">🎲 Projets & Créativité</option>
+                        <option value="Quotidien & Sérénité">🌿 Quotidien & Sérénité</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer">Annuler</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition-colors cursor-pointer">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Confirmation Réinitialisation -->
+    <div id="reset-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
+            <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-3">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900">Réinitialiser les données ?</h3>
+            <p class="text-sm text-slate-500 mt-1">Cela effacera ton historique actuel et restaurera les 3 habitudes par défaut. Pense à exporter en CSV avant si nécessaire.</p>
+            <div class="flex items-center justify-end gap-2 mt-5">
+                <button onclick="closeResetModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Annuler</button>
+                <button onclick="confirmReset()" class="px-4 py-2 text-sm font-medium bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm cursor-pointer">Oui, réinitialiser</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 z-50">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toast-msg">Action effectuée</span>
+    </div>
+
+    <script>
+        // Clé de sauvegarde LocalStorage
+        const STORAGE_KEY = 'daily_habits_tracker_v1';
+
+        // État global de l'application
+        let appData = {
+            habits: [],
+            // logs[habitId][YYYY-MM-DD] = 0 (non fait), 1 (seuil minimal), 2 (complet)
+            logs: {}
+        };
+
+        // --- UTILITAIRES DE DATES ---
+        function formatDateISO(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getPastDays(numDays) {
+            const days = [];
+            const today = new Date();
+            for (let i = numDays - 1; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(today.getDate() - i);
+                days.push(d);
+            }
+            return days;
+        }
+
+        function getShortDayName(date) {
+            const names = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+            return names[date.getDay()];
+        }
+
+        // --- INITIALISATION & DONNÉES PAR DÉFAUT ---
+        function getDefaultData() {
+            const todayStr = formatDateISO(new Date());
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = formatDateISO(yesterday);
+
+            const twoDaysAgo = new Date();
+            twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+            const twoDaysAgoStr = formatDateISO(twoDaysAgo);
+
+            return {
+                habits: [
+                    {
+                        id: 'hab-1',
+                        name: 'Séance de sport ou 30 min de marche active',
+                        minThreshold: '10 min de marche ou étirements',
+                        category: 'Corps & Énergie'
+                    },
+                    {
+                        id: 'hab-2',
+                        name: 'Lire 20 pages ou avancer sur un projet perso',
+                        minThreshold: 'Lire 2 pages ou noter une idée',
+                        category: 'Esprit & Lecture'
+                    },
+                    {
+                        id: 'hab-3',
+                        name: 'Hydratation (1.5L) & 7h30 de sommeil',
+                        minThreshold: 'Boire 2 grands verres d’eau au réveil',
+                        category: 'Quotidien & Sérénité'
+                    }
+                ],
+                logs: {
+                    'hab-1': { [twoDaysAgoStr]: 2, [yesterdayStr]: 1 },
+                    'hab-2': { [twoDaysAgoStr]: 2, [yesterdayStr]: 2 },
+                    'hab-3': { [yesterdayStr]: 2 }
+                }
+            };
+        }
+
+        function loadData() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    appData = JSON.parse(saved);
+                } else {
+                    appData = getDefaultData();
+                    saveData();
+                }
+            } catch (e) {
+                console.error("Erreur lecture LocalStorage:", e);
+                appData = getDefaultData();
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+            } catch (e) {
+                console.error("Erreur sauvegarde LocalStorage:", e);
+            }
+        }
+
+        // --- CALCUL DES SÉRIES (STREAKS) ---
+        function calculateStreak(habitId) {
+            const habitLogs = appData.logs[habitId] || {};
+            let streak = 0;
+            const today = new Date();
+            const todayStr = formatDateISO(today);
+
+            // Si aujourd'hui est complété (1 ou 2), on commence à compter depuis aujourd'hui
+            // Sinon, on vérifie si hier était complété pour ne pas casser la série en cours de journée
+            let checkDate = new Date(today);
+            if (!habitLogs[todayStr] || habitLogs[todayStr] === 0) {
+                checkDate.setDate(checkDate.getDate() - 1);
+            }
+
+            while (true) {
+                const dateStr = formatDateISO(checkDate);
+                const status = habitLogs[dateStr] || 0;
+                if (status >= 1) { // 1 = seuil minimal, 2 = complet -> les deux maintiennent la série !
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        // --- INTERACTION : CHANGEMENT D'ÉTAT ---
+        // Cycle : 0 (Vide) -> 2 (Complet) -> 1 (Seuil minimal) -> 0 (Vide)
+        function toggleHabitDay(habitId, dateStr) {
+            if (!appData.logs[habitId]) {
+                appData.logs[habitId] = {};
+            }
+            const current = appData.logs[habitId][dateStr] || 0;
+            let next = 0;
+            if (current === 0) next = 2;       // Premier clic : Objectif complet (Vert)
+            else if (current === 2) next = 1;  // Deuxième clic : Seuil minimal (Ambre)
+            else next = 0;                     // Troisième clic : Réinitialiser (Vide)
+
+            if (next === 0) {
+                delete appData.logs[habitId][dateStr];
+            } else {
+                appData.logs[habitId][dateStr] = next;
+            }
+
+            saveData();
+            renderAll();
+        }
+
+        // --- RENDU DE L'INTERFACE ---
+        function renderDateHeader() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date-display').textContent = new Date().toLocaleDateString('fr-FR', options);
+        }
+
+        function renderTable() {
+            const last7Days = getPastDays(7);
+            const todayStr = formatDateISO(new Date());
+            const theadRow = document.querySelector('thead tr');
+            
+            // Reconstruire l'en-tête avec les 7 jours
+            let daysHeadersHTML = `<th class="py-4 px-5 w-2/5">Habitude & Seuil Minimal</th>`;
+            last7Days.forEach(date => {
+                const dateStr = formatDateISO(date);
+                const isToday = dateStr === todayStr;
+                daysHeadersHTML += `
+                    <th class="py-3 px-2 text-center ${isToday ? 'bg-emerald-50/70 text-emerald-700' : ''}">
+                        <div class="text-[11px] font-medium ${isToday ? 'text-emerald-600' : 'text-slate-400'}">${getShortDayName(date)}</div>
+                        <div class="text-sm font-bold mt-0.5 ${isToday ? 'text-emerald-700' : 'text-slate-700'}">${date.getDate()}</div>
+                    </th>
+                `;
+            });
+            daysHeadersHTML += `
+                <th class="py-4 px-3 text-center">Série</th>
+                <th class="py-4 px-4 text-right">Actions</th>
+            `;
+            theadRow.innerHTML = daysHeadersHTML;
+
+            // Corps du tableau
+            const tbody = document.getElementById('habits-table-body');
+            const emptyState = document.getElementById('empty-state');
+
+            if (appData.habits.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            let rowsHTML = '';
+            appData.habits.forEach(habit => {
+                const streak = calculateStreak(habit.id);
+                const habitLogs = appData.logs[habit.id] || {};
+
+                let cellsHTML = '';
+                last7Days.forEach(date => {
+                    const dateStr = formatDateISO(date);
+                    const status = habitLogs[dateStr] || 0;
+                    const isToday = dateStr === todayStr;
+
+                    let btnStyle = 'border-slate-200 bg-slate-50/50 hover:border-slate-300 text-transparent';
+                    let icon = 'check';
+                    let title = 'À faire (Cliquer pour valider)';
+
+                    if (status === 2) {
+                        btnStyle = 'border-emerald-500 bg-emerald-500 text-white shadow-xs hover:bg-emerald-600';
+                        icon = 'check';
+                        title = 'Objectif complet ! (Cliquer pour passer en seuil minimal)';
+                    } else if (status === 1) {
+                        btnStyle = 'border-amber-400 bg-amber-400 text-white shadow-xs hover:bg-amber-500';
+                        icon = 'minus';
+                        title = 'Seuil minimal atteint (Cliquer pour effacer)';
+                    }
+
+                    cellsHTML += `
+                        <td class="py-3 px-2 text-center ${isToday ? 'bg-emerald-50/30' : ''}">
+                            <button onclick="toggleHabitDay('${habit.id}', '${dateStr}')" 
+                                    title="${title}"
+                                    class="check-btn w-9 h-9 rounded-xl border inline-flex items-center justify-center cursor-pointer ${btnStyle}">
+                                <i data-lucide="${icon}" class="w-4 h-4 stroke-[2.5]"></i>
+                            </button>
+                        </td>
+                    `;
+                });
+
+                rowsHTML += `
+                    <tr class="hover:bg-slate-50/80 transition-colors group">
+                        <td class="py-4 px-5">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">${habit.category}</span>
+                            </div>
+                            <div class="font-semibold text-slate-800 mt-1">${escapeHTML(habit.name)}</div>
+                            <div class="text-xs text-amber-600/90 flex items-center gap-1 mt-0.5">
+                                <i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i>
+                                <span>Min : ${escapeHTML(habit.minThreshold)}</span>
+                            </div>
+                        </td>
+                        ${cellsHTML}
+                        <td class="py-4 px-3 text-center">
+                            <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${streak > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200/60' : 'bg-slate-100 text-slate-400'}">
+                                <i data-lucide="flame" class="w-3.5 h-3.5 ${streak > 0 ? 'text-amber-500 fill-amber-500' : ''}"></i>
+                                <span>${streak}j</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-right">
+                            <div class="inline-flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                                <button onclick="openModal('${habit.id}')" title="Modifier" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+                                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="deleteHabit('${habit.id}')" title="Supprimer" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = rowsHTML;
+        }
+
+        function renderStats() {
+            const totalHabits = appData.habits.length;
+            const todayStr = formatDateISO(new Date());
+
+            // 1. Progrès du jour
+            if (totalHabits === 0) {
+                document.getElementById('today-fraction').textContent = '0 / 0';
+                document.getElementById('today-percent').textContent = '0%';
+                document.getElementById('today-progress-bar').style.width = '0%';
+                document.getElementById('weekly-consistency').textContent = '0%';
+                document.getElementById('best-streak').textContent = '0';
+                document.getElementById('best-streak-name').textContent = 'Ajoute une habitude pour commencer';
+                return;
+            }
+
+            let todayCompletedCount = 0;
+            appData.habits.forEach(h => {
+                const status = (appData.logs[h.id] && appData.logs[h.id][todayStr]) || 0;
+                if (status >= 1) todayCompletedCount++;
+            });
+
+            const todayPercent = Math.round((todayCompletedCount / totalHabits) * 100);
+            document.getElementById('today-fraction').textContent = `${todayCompletedCount} / ${totalHabits}`;
+            document.getElementById('today-percent').textContent = `${todayPercent}%`;
+            document.getElementById('today-progress-bar').style.width = `${todayPercent}%`;
+
+            // 2. Constance sur 7 jours
+            const last7Days = getPastDays(7);
+            const totalPossibleSlots = totalHabits * 7;
+            let completedSlots = 0;
+
+            appData.habits.forEach(h => {
+                last7Days.forEach(d => {
+                    const dStr = formatDateISO(d);
+                    const status = (appData.logs[h.id] && appData.logs[h.id][dStr]) || 0;
+                    if (status >= 1) completedSlots++;
+                });
+            });
+
+            const weeklyRate = Math.round((completedSlots / totalPossibleSlots) * 100);
+            document.getElementById('weekly-consistency').textContent = `${weeklyRate}%`;
+
+            // 3. Meilleure série active
+            let maxStreak = 0;
+            let bestHabitName = 'Aucune série active';
+            appData.habits.forEach(h => {
+                const s = calculateStreak(h.id);
+                if (s > maxStreak) {
+                    maxStreak = s;
+                    bestHabitName = h.name;
+                }
+            });
+
+            document.getElementById('best-streak').textContent = maxStreak;
+            document.getElementById('best-streak-name').textContent = maxStreak > 0 ? bestHabitName : 'Valide une tâche aujourd’hui !';
+        }
+
+        function renderChart() {
+            const container = document.getElementById('chart-container');
+            const days = getPastDays(14);
+            const totalHabits = appData.habits.length;
+
+            if (totalHabits === 0) {
+                container.innerHTML = `<div class="h-full flex items-center justify-center text-xs text-slate-400">Aucune donnée à afficher</div>`;
+                return;
+            }
+
+            // Construire un graphique en barres empilées propre en HTML/Tailwind
+            let barsHTML = `<div class="w-full h-full flex items-end justify-between gap-1.5 sm:gap-3 pt-6 pb-6">`;
+
+            days.forEach(date => {
+                const dateStr = formatDateISO(date);
+                let fullCount = 0;
+                let minCount = 0;
+
+                appData.habits.forEach(h => {
+                    const st = (appData.logs[h.id] && appData.logs[h.id][dateStr]) || 0;
+                    if (st === 2) fullCount++;
+                    else if (st === 1) minCount++;
+                });
+
+                const fullPct = (fullCount / totalHabits) * 100;
+                const minPct = (minCount / totalHabits) * 100;
+                const totalPct = Math.round(fullPct + minPct);
+                const isToday = dateStr === formatDateISO(new Date());
+
+                barsHTML += `
+                    <div class="flex-1 h-full flex flex-col items-center justify-end group relative">
+                        <!-- Tooltip au survol -->
+                        <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-7 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none whitespace-nowrap z-10">
+                            ${date.getDate()}/${date.getMonth()+1} : ${totalPct}%
+                        </div>
+                        
+                        <!-- Barre arrière-plan -->
+                        <div class="w-full max-w-[28px] h-full bg-slate-100 rounded-lg overflow-hidden flex flex-col justify-end p-0.5">
+                            <!-- Segment Seuil minimal (Ambre) -->
+                            <div style="height: ${minPct}%" class="w-full bg-amber-400 transition-all duration-500 ${fullPct === 0 && minPct > 0 ? 'rounded-md' : 'rounded-t-md'}"></div>
+                            <!-- Segment Complet (Émeraude) -->
+                            <div style="height: ${fullPct}%" class="w-full bg-emerald-500 transition-all duration-500 ${minPct === 0 && fullPct > 0 ? 'rounded-md' : 'rounded-b-md'}"></div>
+                        </div>
+
+                        <!-- Étiquette date -->
+                        <span class="text-[10px] mt-2 font-medium ${isToday ? 'text-emerald-600 font-bold' : 'text-slate-400'}">
+                            ${date.getDate()}/${String(date.getMonth() + 1).padStart(2, '0')}
+                        </span>
+                    </div>
+                `;
+            });
+
+            barsHTML += `</div>`;
+            container.innerHTML = barsHTML;
+        }
+
+        function renderAll() {
+            renderTable();
+            renderStats();
+            renderChart();
+            lucide.createIcons();
+        }
+
+        // --- GESTION DES MODALES (AJOUT / ÉDITION / SUPPRESSION) ---
+        function openModal(habitId = null) {
+            const modal = document.getElementById('habit-modal');
+            const title = document.getElementById('modal-title');
+            const idInput = document.getElementById('habit-id');
+            const nameInput = document.getElementById('habit-name');
+            const minInput = document.getElementById('habit-min');
+            const catInput = document.getElementById('habit-category');
+
+            if (habitId) {
+                const habit = appData.habits.find(h => h.id === habitId);
+                if (!habit) return;
+                title.textContent = 'Modifier l’habitude';
+                idInput.value = habit.id;
+                nameInput.value = habit.name;
+                minInput.value = habit.minThreshold;
+                catInput.value = habit.category;
+            } else {
+                title.textContent = 'Nouvelle habitude';
+                idInput.value = '';
+                nameInput.value = '';
+                minInput.value = '';
+                catInput.value = 'Corps & Énergie';
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            nameInput.focus();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('habit-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveHabit(event) {
+            event.preventDefault();
+            const id = document.getElementById('habit-id').value;
+            const name = document.getElementById('habit-name').value.trim();
+            const minThreshold = document.getElementById('habit-min').value.trim();
+            const category = document.getElementById('habit-category').value;
+
+            if (!name || !minThreshold) return;
+
+            if (id) {
+                // Édition
+                const index = appData.habits.findIndex(h => h.id === id);
+                if (index !== -1) {
+                    appData.habits[index] = { ...appData.habits[index], name, minThreshold, category };
+                    showToast('Habitude mise à jour');
+                }
+            } else {
+                // Création
+                const newHabit = {
+                    id: 'hab-' + Date.now(),
+                    name,
+                    minThreshold,
+                    category
+                };
+                appData.habits.push(newHabit);
+                showToast('Nouvelle habitude ajoutée');
+            }
+
+            saveData();
+            closeModal();
+            renderAll();
+        }
+
+        function deleteHabit(habitId) {
+            appData.habits = appData.habits.filter(h => h.id !== habitId);
+            delete appData.logs[habitId];
+            saveData();
+            renderAll();
+            showToast('Habitude supprimée');
+        }
+
+        // --- RÉINITIALISATION ---
+        function openResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmReset() {
+            appData = getDefaultData();
+            saveData();
+            closeResetModal();
+            renderAll();
+            showToast('Données réinitialisées par défaut');
+        }
+
+        // --- EXPORT CSV ---
+        function exportToCSV() {
+            if (appData.habits.length === 0) {
+                showToast('Aucune donnée à exporter');
+                return;
+            }
+
+            // Récupérer toutes les dates enregistrées + les 14 derniers jours
+            const dateSet = new Set(getPastDays(14).map(d => formatDateISO(d)));
+            Object.values(appData.logs).forEach(habitLog => {
+                Object.keys(habitLog).forEach(d => dateSet.add(d));
+            });
+            const sortedDates = Array.from(dateSet).sort();
+
+            // En-tête CSV
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += ["Catégorie", "Habitude", "Seuil Minimal", ...sortedDates].map(v => `"${v}"`).join(";") + "\n";
+
+            // Lignes
+            appData.habits.forEach(habit => {
+                const row = [
+                    habit.category,
+                    habit.name,
+                    habit.minThreshold,
+                    ...sortedDates.map(date => {
+                        const val = (appData.logs[habit.id] && appData.logs[habit.id][date]) || 0;
+                        if (val === 2) return "Complet";
+                        if (val === 1) return "Seuil minimal";
+                        return "Non fait";
+                    })
+                ];
+                csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `suivi_habitudes_${formatDateISO(new Date())}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Export CSV téléchargé');
+        }
+
+        // --- UTILITAIRES UI ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2800);
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // Démarrage de l'application
+        window.addEventListener('DOMContentLoaded', () => {
+            renderDateHeader();
+            loadData();
+            renderAll();
+        });
+    </script>
+</body>
+</html>
